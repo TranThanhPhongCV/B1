@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: b1-speaking-lab
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0

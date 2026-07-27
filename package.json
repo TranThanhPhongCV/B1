@@ -1,0 +1,15 @@
+{
+  "name": "b1-speaking-lab",
+  "version": "4.0.0",
+  "private": true,
+  "description": "B1 Speaking learning web with bilingual frames, smart review and responsive onboarding",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check app.js && node --check server.js && node --check service-worker.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

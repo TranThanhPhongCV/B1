@@ -1,0 +1,13 @@
+{
+  "name": "B1 Speaking Lab",
+  "short_name": "B1 Lab",
+  "description": "Web ôn Speaking B1 song ngữ, ôn câu sai và học theo sườn",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#f4f6f7",
+  "theme_color": "#17324d",
+  "lang": "vi-VN",
+  "orientation": "any"
+}

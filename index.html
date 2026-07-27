@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17324d">
+  <meta name="description" content="Web ôn Speaking B1 song ngữ, có hướng dẫn thông minh, ôn câu sai và giao diện thích ứng mọi thiết bị">
+  <title>B1 Speaking Lab</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
+      <div class="brand">
+        <div class="brand-mark">B1</div>
+        <div>
+          <strong>Speaking Lab</strong>
+          <span>Ôn đúng sườn của bạn</span>
+        </div>
+      </div>
+
+      <nav class="main-nav" id="mainNav">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span>Tổng quan</button>
+        <button class="nav-item" data-view="universal"><span>★</span>Sườn vạn năng</button>
+        <button class="nav-item" data-view="starter"><span>✦</span>Học từ số 0</button>
+        <button class="nav-item" data-view="topics"><span>▤</span>Học theo chủ đề</button>
+        <button class="nav-item" data-view="flashcards"><span>◇</span>Flashcard</button>
+        <button class="nav-item" data-view="practice"><span>✓</span>Luyện nhanh</button>
+        <button class="nav-item" data-view="review"><span>↺</span>Ôn câu sai</button>
+        <button class="nav-item" data-view="picture"><span>▣</span>Mô tả tranh</button>
+        <button class="nav-item" data-view="dialogue"><span>◌</span>Hội thoại</button>
+        <button class="nav-item" data-view="sources"><span>≡</span>Dữ liệu gốc</button>
+      </nav>
+
+      <div class="sidebar-progress">
+        <div class="mini-label">Tiến độ ghi nhớ</div>
+        <div class="progress-line"><span id="sideProgressBar"></span></div>
+        <strong id="sideProgressText">0 / 66 câu</strong>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuButton" aria-label="Mở menu">☰</button>
+        <label class="search-box" for="globalSearch">
+          <span>⌕</span>
+          <input id="globalSearch" type="search" placeholder="Tìm chủ đề, câu hỏi hoặc từ khóa…" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <div class="top-actions">
+          <div class="segmented" aria-label="Chọn bản câu trả lời">
+            <button id="modeNatural" class="active" data-answer-mode="natural">Bản dễ nói</button>
+            <button id="modeOriginal" data-answer-mode="original">Bản gốc</button>
+          </div>
+          <button class="toggle-button active" id="translationToggle" aria-pressed="true">VI</button>
+          <button class="icon-button" id="fontButton" title="Đổi cỡ chữ" aria-label="Đổi cỡ chữ">Aa</button>
+          <button class="profile-button" id="profileButton" title="Tài khoản"><span class="profile-avatar" id="profileAvatar">?</span><span class="profile-name" id="profileName">Tài khoản</span></button>
+        </div>
+      </header>
+
+      <main id="content" class="content" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Điều hướng di động">
+    <button class="active" data-view="dashboard"><span>⌂</span>Tổng quan</button>
+    <button data-view="universal"><span>★</span>Sườn</button>
+    <button data-view="starter"><span>✦</span>Học mới</button>
+    <button data-view="topics"><span>▤</span>Chủ đề</button>
+    <button data-view="practice"><span>✓</span>Luyện</button>
+    <button data-view="review"><span>↺</span>Ôn sai</button>
+  </nav>
+
+  <div class="auth-overlay" id="authOverlay" aria-hidden="true">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="auth-close" id="authClose" aria-label="Đóng">×</button>
+      <div class="auth-brand"><span>B1</span><div><strong>Speaking Lab</strong><small>Lưu tiến độ riêng cho từng người</small></div></div>
+      <div class="auth-tabs">
+        <button class="active" data-auth-tab="login">Đăng nhập</button>
+        <button data-auth-tab="register">Đăng ký</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <h2 id="authTitle">Chào bạn quay lại</h2>
+        <p>Đăng nhập để mở đúng danh sách câu sai và tiến độ của bạn.</p>
+        <label>Tên đăng nhập<input name="username" autocomplete="username" required minlength="3" maxlength="24" placeholder="Ví dụ: thanhphong"></label>
+        <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required minlength="6" placeholder="Tối thiểu 6 ký tự"></label>
+        <div class="auth-error" id="loginError"></div>
+        <button class="button primary auth-submit" type="submit">Đăng nhập</button>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <h2>Tạo tài khoản học</h2>
+        <p>Tài khoản được lưu cục bộ trên trình duyệt này và hoạt động không cần Internet.</p>
+        <label>Tên hiển thị<input name="displayName" required minlength="2" maxlength="30" placeholder="Ví dụ: Thanh Phong"></label>
+        <label>Tên đăng nhập<input name="username" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.-]+" placeholder="Không dấu, không khoảng trắng"></label>
+        <label>Mật khẩu<input name="password" type="password" autocomplete="new-password" required minlength="6" placeholder="Tối thiểu 6 ký tự"></label>
+        <label>Xác nhận mật khẩu<input name="confirmPassword" type="password" autocomplete="new-password" required minlength="6"></label>
+        <label class="check-row"><input name="copyProgress" type="checkbox" checked> Sao chép tiến độ học thử hiện tại</label>
+        <div class="auth-error" id="registerError"></div>
+        <button class="button primary auth-submit" type="submit">Tạo tài khoản</button>
+      </form>
+      <button class="guest-link" id="guestButton">Học thử không cần tài khoản</button>
+      <p class="local-note">Lưu ý: đây là tài khoản offline. Dữ liệu không tự đồng bộ sang máy hoặc trình duyệt khác.</p>
+    </div>
+  </div>
+
+  <div class="account-menu" id="accountMenu" aria-hidden="true">
+    <div class="account-summary"><span class="profile-avatar" id="menuAvatar">?</span><div><strong id="menuName">Tài khoản</strong><small id="menuUser">offline</small></div></div>
+    <button data-view="review">↺ Mở danh sách ôn lại</button>
+    <button id="openGuideButton">? Xem hướng dẫn sử dụng</button>
+    <button id="switchAccountButton">⇄ Đổi tài khoản</button>
+    <button id="logoutButton" class="danger-text">↪ Đăng xuất</button>
+  </div>
+
+
+  <div class="onboarding-overlay" id="onboardingOverlay" aria-hidden="true">
+    <div class="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="onboarding-top">
+        <div>
+          <div class="eyebrow">Hướng dẫn lần đầu</div>
+          <h2 id="onboardingTitle">Học thông minh với B1 Speaking Lab</h2>
+        </div>
+        <button class="onboarding-skip" data-onboarding-skip>Bỏ qua</button>
+      </div>
+
+      <div class="onboarding-progress" aria-label="Tiến trình hướng dẫn">
+        <span class="active"></span><span></span><span></span><span></span><span></span>
+      </div>
+
+      <section class="onboarding-step active" data-onboarding-step="0">
+        <div class="onboarding-visual">👋</div>
+        <h3>Chào mừng bạn</h3>
+        <p>Web không yêu cầu học thuộc nguyên bài. Bạn sẽ học theo <strong>khung câu</strong>, tự trả lời, sau đó để hệ thống giữ lại đúng những câu còn yếu.</p>
+        <div class="onboarding-mini-grid">
+          <article><strong>Hiểu</strong><span>Đọc tiếng Anh kèm nghĩa Việt.</span></article>
+          <article><strong>Tự nói</strong><span>Nói trước khi mở đáp án.</span></article>
+          <article><strong>Ôn đúng chỗ</strong><span>Ưu tiên câu sai và chưa chắc.</span></article>
+        </div>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="1">
+        <div class="onboarding-visual">🧠</div>
+        <h3>Lộ trình 20 phút mỗi ngày</h3>
+        <div class="smart-route">
+          <article><b>5 phút</b><strong>Sườn vạn năng</strong><span>Nhắc lại DREAM và khung 8 ô mô tả tranh.</span></article>
+          <article><b>7 phút</b><strong>Học một chủ đề</strong><span>Đọc nghĩa Việt, nghe và nói lại bằng ý của bạn.</span></article>
+          <article><b>5 phút</b><strong>Luyện không nhìn bài</strong><span>Dùng Flashcard hoặc Luyện nhanh để kiểm tra thật.</span></article>
+          <article><b>3 phút</b><strong>Ôn câu sai</strong><span>Chỉ tập trung vào câu hệ thống đánh dấu còn yếu.</span></article>
+        </div>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="2">
+        <div class="onboarding-visual">↺</div>
+        <h3>Đánh giá thật để web giúp đúng</h3>
+        <div class="rating-guide">
+          <article class="good"><strong>Nhớ rõ</strong><span>Bạn có thể trả lời mà không nhìn bài.</span></article>
+          <article class="warn"><strong>Chưa chắc</strong><span>Bạn nhớ ý nhưng nói còn ngập ngừng hoặc thiếu từ.</span></article>
+          <article class="bad"><strong>Cần học lại</strong><span>Bạn trả lời sai ý, sai cấu trúc hoặc không nhớ.</span></article>
+        </div>
+        <p class="onboarding-note">Một câu chỉ hoàn tất sau khi bạn trả lời đúng <strong>hai lần liên tiếp</strong>. Vì vậy hãy chọn đúng mức, không bấm “Nhớ rõ” chỉ để tăng điểm.</p>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="3">
+        <div class="onboarding-visual">📱💻</div>
+        <h3>Web tự thích ứng với thiết bị</h3>
+        <div class="device-guide">
+          <article><strong>Trên laptop</strong><span>Dùng thanh menu bên trái, nhấn <kbd>/</kbd> để tìm kiếm, Space để lật Flashcard và phím ← → để đổi thẻ.</span></article>
+          <article><strong>Trên điện thoại</strong><span>Dùng thanh điều hướng phía dưới; nút, biểu mẫu và nội dung tự chuyển thành một cột để dễ chạm và đọc.</span></article>
+        </div>
+        <p class="onboarding-note"><strong>Lưu ý:</strong> tài khoản và tiến độ được lưu trên trình duyệt hiện tại. Điện thoại và laptop sẽ có dữ liệu riêng, chưa tự đồng bộ với nhau.</p>
+      </section>
+
+      <section class="onboarding-step" data-onboarding-step="4">
+        <div class="onboarding-visual">🚀</div>
+        <h3>Bắt đầu đúng thứ tự</h3>
+        <ol class="onboarding-checklist">
+          <li>Mở <strong>Sườn vạn năng</strong> để biết cách tạo câu.</li>
+          <li>Chọn một chủ đề và tự nói trước khi xem đáp án.</li>
+          <li>Đánh dấu câu chưa chắc hoặc cần học lại ngay.</li>
+          <li>Kết thúc buổi học bằng mục <strong>Ôn câu sai</strong>.</li>
+        </ol>
+        <div class="onboarding-final-actions">
+          <button class="button" data-onboarding-finish="dashboard">Vào tổng quan</button>
+          <button class="button primary" data-onboarding-finish="universal">Học sườn vạn năng trước</button>
+        </div>
+      </section>
+
+      <div class="onboarding-actions">
+        <button class="button" data-onboarding-prev disabled>← Quay lại</button>
+        <span id="onboardingCounter">1 / 5</span>
+        <button class="button primary" data-onboarding-next>Tiếp tục →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
