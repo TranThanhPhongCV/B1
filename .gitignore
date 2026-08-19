@@ -1,3 +1,15 @@
 node_modules/
 .DS_Store
 npm-debug.log*
+
+# Large PDF file
+*.pdf
+
+# Temporary thumbnail/detail images (kept for reference, not needed in repo)
+assets/listening_images/thumb_page_*.png
+assets/listening_images/detail_page_*.png
+
+# Python cache
+__pycache__/
+*.pyc
+extract_images.py
