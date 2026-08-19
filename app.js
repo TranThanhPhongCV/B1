@@ -6,6 +6,64 @@
   'use strict';
 
   const DATA = window.QUIZ_DATA;
+
+  // --- GENERATE MASTER TEST ---
+  (function generateMasterTest() {
+    const masterTest = {
+      id: "test-all",
+      title: "Tất Cả Câu Hỏi (Master Test)",
+      sections: [
+        { id: "reading", title: "Reading", icon: "📖", parts: [] },
+        { id: "listening", title: "Listening", icon: "🎧", parts: [] }
+      ]
+    };
+    
+    const readingParts = [1, 2, 3, 4, 5];
+    const listeningParts = [1, 2, 3, 4];
+    
+    ['reading', 'listening'].forEach(secId => {
+      const targetParts = secId === 'reading' ? readingParts : listeningParts;
+      const masterSec = masterTest.sections.find(s => s.id === secId);
+      
+      targetParts.forEach(pNum => {
+        let masterPart = null;
+        let addedStem = new Set();
+        
+        DATA.tests.forEach(test => {
+          const sec = test.sections.find(s => s.id === secId);
+          if (!sec) return;
+          const part = sec.parts.find(p => p.id === `part${pNum}`);
+          if (!part) return;
+          
+          if (!masterPart) {
+            masterPart = {
+              id: `part${pNum}`,
+              title: `Part ${pNum} (Tổng hợp)`,
+              description: part.description,
+              type: part.type,
+              options: part.options,
+              questions: []
+            };
+          }
+          
+          part.questions.forEach(q => {
+            const stemNorm = q.stem.trim().toLowerCase();
+            if (!addedStem.has(stemNorm)) {
+              addedStem.add(stemNorm);
+              masterPart.questions.push(q);
+            }
+          });
+        });
+        
+        if (masterPart && masterPart.questions.length > 0) {
+          masterSec.parts.push(masterPart);
+        }
+      });
+    });
+    
+    DATA.tests.unshift(masterTest);
+  })();
+
   const content = document.getElementById('content');
 
   /* =============================================
@@ -143,7 +201,8 @@
   function toggleShuffle() {
     state.shuffle = !state.shuffle;
     saveState();
-    renderQuiz();
+    if (state.view === 'quiz') renderQuiz();
+    else if (state.view === 'dashboard') renderDashboard();
     showToast(state.shuffle ? 'Đã BẬT trộn câu hỏi' : 'Đã TẮT trộn câu hỏi');
   }
 
@@ -247,11 +306,23 @@
     let cardsHtml = DATA.tests.map(test => {
       const prog = getTestProgress(test.id);
       const testPct = prog.total ? Math.round((prog.answered / prog.total) * 100) : 0;
-      const scorePct = prog.total ? Math.round((prog.correct / prog.total) * 100) : 0;
+      const isMaster = test.id === 'test-all';
+      
+      // Derive display label from test.id: "c2t3" -> "Book 2 · Test 3", "test1" -> "PET 1"
+      let cardBadge = '';
+      if (isMaster) {
+        cardBadge = 'ALL';
+      } else if (/^c(\d+)t(\d+)$/.test(test.id)) {
+        const [, b, t] = test.id.match(/^c(\d+)t(\d+)$/);
+        cardBadge = `B${b}·T${t}`;
+      } else {
+        cardBadge = test.id.replace('test','');
+      }
+      
       return `
-        <article class="test-card fade-in" data-nav-test="${test.id}" tabindex="0" role="button" aria-label="${test.title}">
+        <article class="test-card fade-in ${isMaster ? 'master-card' : ''}" data-nav-test="${test.id}" tabindex="0" role="button" aria-label="${test.title}">
           <div class="test-card-header">
-            <div class="test-num">${test.id.replace('test', '')}</div>
+            <div class="test-num">${cardBadge}</div>
             <div class="test-card-score">${prog.correct}/${prog.total} đúng</div>
           </div>
           <div class="test-card-title">${test.title}</div>
@@ -271,7 +342,7 @@
         <div class="dashboard-hero">
           <div class="hero-badge">📚 Cambridge PET for Schools</div>
           <h1>Luyện thi B1 Trắc nghiệm</h1>
-          <p class="hero-sub">4 bài Test đầy đủ Reading & Listening theo chuẩn Cambridge PET — làm bài, kiểm tra đáp án, theo dõi tiến độ.</p>
+          <p class="hero-sub">Bài tập đầy đủ Reading & Listening theo chuẩn Cambridge PET — làm bài, kiểm tra đáp án, theo dõi tiến độ.</p>
           <div class="hero-stats">
             <div class="hero-stat">
               <div class="hero-stat-num">${total.total}</div>
@@ -286,12 +357,57 @@
               <div class="hero-stat-label">Tỉ lệ đúng</div>
             </div>
           </div>
+          <div class="dashboard-global-actions">
+            <label class="toggle-switch-wrapper shuffle-toggle-pill">
+              <span class="toggle-switch-label">Trộn câu hỏi & đáp án</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="shuffleToggleGlobal" ${state.shuffle ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+          </div>
         </div>
+
+        <div class="dashboard-search-wrap">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="Tìm câu hỏi..." autocomplete="off">
+            <button class="search-clear" id="searchClear" style="display:none">✕</button>
+          </div>
+          <div class="search-results" id="searchResults" style="display:none"></div>
+        </div>
+
         <div class="dashboard-grid">
           ${cardsHtml}
         </div>
       </div>
     `;
+
+    const shuffleTgl = document.getElementById('shuffleToggleGlobal');
+    if (shuffleTgl) shuffleTgl.addEventListener('change', toggleShuffle);
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const searchResults = document.getElementById('searchResults');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim();
+        searchClear.style.display = q ? '' : 'none';
+        if (q.length >= 2) {
+          searchResults.style.display = 'block';
+          searchResults.innerHTML = renderSearchResults(q);
+          attachSearchResultListeners();
+        } else {
+          searchResults.style.display = 'none';
+        }
+      });
+      searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchClear.style.display = 'none';
+        searchResults.style.display = 'none';
+      });
+    }
 
     content.querySelectorAll('[data-nav-test]').forEach(el => {
       el.addEventListener('click', () => {
@@ -301,6 +417,78 @@
     });
 
     updateScoreRing();
+  }
+
+  /* =============================================
+     SEARCH
+     ============================================= */
+  function renderSearchResults(query) {
+    const q = query.toLowerCase();
+    const MAX_RESULTS = 40;
+    const results = [];
+
+    for (const test of DATA.tests) {
+      if (test.id === 'test-all') continue; // skip master
+      for (const sec of test.sections) {
+        for (const part of sec.parts) {
+          for (const question of part.questions) {
+            if (results.length >= MAX_RESULTS) break;
+            const stemLow = question.stem.toLowerCase();
+            const optionsLow = (question.options || []).map(o => o.toLowerCase()).join(' ');
+            if (stemLow.includes(q) || optionsLow.includes(q)) {
+              results.push({ test, sec, part, question });
+            }
+          }
+        }
+      }
+    }
+
+    if (!results.length) {
+      return `<div class="search-empty">Không tìm thấy câu hỏi nào khớp với "${query}"</div>`;
+    }
+
+    function highlight(text) {
+      if (!text) return '';
+      const esc = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return text.replace(new RegExp(`(${esc})`, 'gi'), '<mark>$1</mark>');
+    }
+
+    return results.map(({test, sec, part, question}) => {
+      const badge = /^c(\d+)t(\d+)$/.test(test.id)
+        ? (() => { const [,b,t] = test.id.match(/^c(\d+)t(\d+)$/); return `Book ${b} · Test ${t}`; })()
+        : `PET 1`;
+      return `
+        <div class="search-result-item" 
+             data-search-test="${test.id}" 
+             data-search-sec="${sec.id}" 
+             data-search-part="${part.id}" 
+             data-search-qid="${question.id}">
+          <div class="search-result-meta">${badge} · ${sec.icon} ${sec.title} · ${part.title}</div>
+          <div class="search-result-stem">${highlight(question.stem)}</div>
+          ${(question.options || []).length ? `
+            <div class="search-result-opts">
+              ${question.options.map((o, i) => `<span class="sopt">${['A','B','C','D'][i]}. ${highlight(o)}</span>`).join('')}
+            </div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function attachSearchResultListeners() {
+    content.querySelectorAll('[data-search-test]').forEach(el => {
+      el.addEventListener('click', () => {
+        const tId = el.dataset.searchTest;
+        const sId = el.dataset.searchSec;
+        const pId = el.dataset.searchPart;
+        const qId = el.dataset.searchQid;
+        navigate('quiz', { testId: tId, sectionId: sId, partId: pId });
+        // After navigation, try to scroll to the question
+        setTimeout(() => {
+          const el2 = document.getElementById(`qcard-${qId}`);
+          if (el2) el2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      });
+    });
   }
 
   /* =============================================
@@ -347,7 +535,7 @@
           <h1 class="page-title">${test.title} — ${section.title}</h1>
         </div>
         <div class="page-subtitle">Chọn phần để bắt đầu làm bài trắc nghiệm.</div>
-        <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;">
+        <div class="section-tabs-row">
           ${tabsHtml}
         </div>
         <div class="parts-grid">
@@ -455,13 +643,6 @@
               <div class="quiz-title">${part.title} — ${getPartTypeLabel(part.type)}</div>
             </div>
             <div class="quiz-actions">
-              <label class="toggle-switch-wrapper">
-                <span class="toggle-switch-label">Trộn câu hỏi</span>
-                <div class="toggle-switch">
-                  <input type="checkbox" id="shuffleToggle" ${state.shuffle ? 'checked' : ''} ${isRevealed ? 'disabled' : ''}>
-                  <span class="toggle-slider"></span>
-                </div>
-              </label>
               <button class="btn btn-ghost" id="backToSectionBtn">← Quay lại</button>
             </div>
           </div>
@@ -490,9 +671,6 @@
     // Events
     document.getElementById('backToSectionBtn').addEventListener('click', () => navigate('section', {}));
     document.getElementById('submitBtn').addEventListener('click', () => submitQuiz(part, key));
-    
-    const shuffleTgl = document.getElementById('shuffleToggle');
-    if (shuffleTgl) shuffleTgl.addEventListener('change', toggleShuffle);
 
     if (isRevealed) {
       const retryBtn = document.getElementById('retryBtn');
