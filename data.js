@@ -225,19 +225,14 @@ window.QUIZ_DATA = {
               title: "Part 1",
               description: "Nghe và chọn hình ảnh đúng (A, B hoặc C). Xem hình từ trang sách bên dưới.",
               type: "picture",
-              images: [
-                "assets/listening_images/test1_listening_p1_page25.png",
-                "assets/listening_images/test1_listening_p1_page26.png",
-                "assets/listening_images/test1_listening_p1_page27.png"
-              ],
               questions: [
-                { id: "t1-l-p1-q1", stem: "Which dish did Mark cook in the competition?", answer: "C" },
-                { id: "t1-l-p1-q2", stem: "Where is the girl's book now?", answer: "B" },
-                { id: "t1-l-p1-q3", stem: "Who lives with Josh in his house?", answer: "A" },
-                { id: "t1-l-p1-q4", stem: "What will the girl take with her on holiday?", answer: "B" },
-                { id: "t1-l-p1-q5", stem: "What time will the train to Manchester leave?", answer: "C" },
-                { id: "t1-l-p1-q6", stem: "Where will the friends meet?", answer: "A" },
-                { id: "t1-l-p1-q7", stem: "Which sport will the boy do soon at the centre?", answer: "C" }
+                { id: "t1-l-p1-q1", stem: "Which dish did Mark cook in the competition?", image: "assets/listening_images/questions/t1_q1.png", answer: "C" },
+                { id: "t1-l-p1-q2", stem: "Where is the girl's book now?", image: "assets/listening_images/questions/t1_q2.png", answer: "B" },
+                { id: "t1-l-p1-q3", stem: "Who lives with Josh in his house?", image: "assets/listening_images/questions/t1_q3.png", answer: "A" },
+                { id: "t1-l-p1-q4", stem: "What will the girl take with her on holiday?", image: "assets/listening_images/questions/t1_q4.png", answer: "B" },
+                { id: "t1-l-p1-q5", stem: "What time will the train to Manchester leave?", image: "assets/listening_images/questions/t1_q5.png", answer: "C" },
+                { id: "t1-l-p1-q6", stem: "Where will the friends meet?", image: "assets/listening_images/questions/t1_q6.png", answer: "A" },
+                { id: "t1-l-p1-q7", stem: "Which sport will the boy do soon at the centre?", image: "assets/listening_images/questions/t1_q7.png", answer: "C" }
               ]
             },
             {
@@ -555,19 +550,14 @@ window.QUIZ_DATA = {
               title: "Part 1",
               description: "Nghe và chọn hình ảnh đúng (A, B hoặc C). Xem hình từ trang sách bên dưới.",
               type: "picture",
-              images: [
-                "assets/listening_images/test2_listening_p1_page45.png",
-                "assets/listening_images/test2_listening_p1_page46.png",
-                "assets/listening_images/test2_listening_p1_page47.png"
-              ],
               questions: [
-                { id: "t2-l-p1-q1", stem: "What can't the woman find?", answer: "B" },
-                { id: "t2-l-p1-q2", stem: "What is the weather forecast for tomorrow?", answer: "C" },
-                { id: "t2-l-p1-q3", stem: "What did the boy buy?", answer: "A" },
-                { id: "t2-l-p1-q4", stem: "Which present has the girl bought her mother?", answer: "C" },
-                { id: "t2-l-p1-q5", stem: "Which TV programme will they watch together?", answer: "B" },
-                { id: "t2-l-p1-q6", stem: "What time is the swimming lesson today?", answer: "B" },
-                { id: "t2-l-p1-q7", stem: "Which subject does the boy like best?", answer: "C" }
+                { id: "t2-l-p1-q1", stem: "What can't the woman find?", image: "assets/listening_images/questions/t2_q1.png", answer: "B" },
+                { id: "t2-l-p1-q2", stem: "What is the weather forecast for tomorrow?", image: "assets/listening_images/questions/t2_q2.png", answer: "C" },
+                { id: "t2-l-p1-q3", stem: "What did the boy buy?", image: "assets/listening_images/questions/t2_q3.png", answer: "A" },
+                { id: "t2-l-p1-q4", stem: "Which present has the girl bought her mother?", image: "assets/listening_images/questions/t2_q4.png", answer: "C" },
+                { id: "t2-l-p1-q5", stem: "Which TV programme will they watch together?", image: "assets/listening_images/questions/t2_q5.png", answer: "B" },
+                { id: "t2-l-p1-q6", stem: "What time is the swimming lesson today?", image: "assets/listening_images/questions/t2_q6.png", answer: "B" },
+                { id: "t2-l-p1-q7", stem: "Which subject does the boy like best?", image: "assets/listening_images/questions/t2_q7.png", answer: "C" }
               ]
             },
             {
@@ -885,19 +875,14 @@ window.QUIZ_DATA = {
               title: "Part 1",
               description: "Nghe và chọn hình ảnh đúng (A, B hoặc C). Xem hình từ trang sách bên dưới.",
               type: "picture",
-              images: [
-                "assets/listening_images/test3_listening_p1_page65.png",
-                "assets/listening_images/test3_listening_p1_page66.png",
-                "assets/listening_images/test3_listening_p1_page67.png"
-              ],
               questions: [
-                { id: "t3-l-p1-q1", stem: "Which T-shirt does the boy decide to buy?", answer: "A" },
-                { id: "t3-l-p1-q2", stem: "Who will be on the stage next?", answer: "C" },
-                { id: "t3-l-p1-q3", stem: "What time will the pie be ready?", answer: "C" },
-                { id: "t3-l-p1-q4", stem: "Which photo does the girl dislike?", answer: "B" },
-                { id: "t3-l-p1-q5", stem: "What should the students take on the school trip?", answer: "C" },
-                { id: "t3-l-p1-q6", stem: "Where do the boys decide to go?", answer: "A" },
-                { id: "t3-l-p1-q7", stem: "What has the girl lost?", answer: "B" }
+                { id: "t3-l-p1-q1", stem: "Which T-shirt does the boy decide to buy?", image: "assets/listening_images/questions/t3_q1.png", answer: "A" },
+                { id: "t3-l-p1-q2", stem: "Who will be on the stage next?", image: "assets/listening_images/questions/t3_q2.png", answer: "C" },
+                { id: "t3-l-p1-q3", stem: "What time will the pie be ready?", image: "assets/listening_images/questions/t3_q3.png", answer: "C" },
+                { id: "t3-l-p1-q4", stem: "Which photo does the girl dislike?", image: "assets/listening_images/questions/t3_q4.png", answer: "B" },
+                { id: "t3-l-p1-q5", stem: "What should the students take on the school trip?", image: "assets/listening_images/questions/t3_q5.png", answer: "C" },
+                { id: "t3-l-p1-q6", stem: "Where do the boys decide to go?", image: "assets/listening_images/questions/t3_q6.png", answer: "A" },
+                { id: "t3-l-p1-q7", stem: "What has the girl lost?", image: "assets/listening_images/questions/t3_q7.png", answer: "B" }
               ]
             },
             {
@@ -1215,19 +1200,14 @@ window.QUIZ_DATA = {
               title: "Part 1",
               description: "Nghe và chọn hình ảnh đúng (A, B hoặc C). Xem hình từ trang sách bên dưới.",
               type: "picture",
-              images: [
-                "assets/listening_images/test4_listening_p1_page93.png",
-                "assets/listening_images/test4_listening_p1_page94.png",
-                "assets/listening_images/test4_listening_p1_page95.png"
-              ],
               questions: [
-                { id: "t4-l-p1-q1", stem: "When will Jack's mum pick him up?", answer: "B" },
-                { id: "t4-l-p1-q2", stem: "Which postcard will they send?", answer: "A" },
-                { id: "t4-l-p1-q3", stem: "What do they decide to buy?", answer: "A" },
-                { id: "t4-l-p1-q4", stem: "What has the girl forgotten to bring?", answer: "B" },
-                { id: "t4-l-p1-q5", stem: "How does the man want his son to help him?", answer: "C" },
-                { id: "t4-l-p1-q6", stem: "Which TV programme is on at nine o'clock tonight?", answer: "C" },
-                { id: "t4-l-p1-q7", stem: "What will the boy do first?", answer: "A" }
+                { id: "t4-l-p1-q1", stem: "When will Jack's mum pick him up?", image: "assets/listening_images/questions/t4_q1.png", answer: "B" },
+                { id: "t4-l-p1-q2", stem: "Which postcard will they send?", image: "assets/listening_images/questions/t4_q2.png", answer: "A" },
+                { id: "t4-l-p1-q3", stem: "What do they decide to buy?", image: "assets/listening_images/questions/t4_q3.png", answer: "A" },
+                { id: "t4-l-p1-q4", stem: "What has the girl forgotten to bring?", image: "assets/listening_images/questions/t4_q4.png", answer: "B" },
+                { id: "t4-l-p1-q5", stem: "How does the man want his son to help him?", image: "assets/listening_images/questions/t4_q5.png", answer: "C" },
+                { id: "t4-l-p1-q6", stem: "Which TV programme is on at nine o'clock tonight?", image: "assets/listening_images/questions/t4_q6.png", answer: "C" },
+                { id: "t4-l-p1-q7", stem: "What will the boy do first?", image: "assets/listening_images/questions/t4_q7.png", answer: "A" }
               ]
             },
             {

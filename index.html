@@ -69,6 +69,17 @@
         </div>
 
         <div class="topbar-actions">
+          <button class="btn btn-ghost" id="loginBtn" title="Đăng nhập">👤 Đăng nhập</button>
+          <div class="user-profile" id="userProfile" style="display:none;">
+            <span class="user-name" id="userNameDisplay">User</span>
+            <button class="icon-btn" id="logoutBtn" title="Đăng xuất" aria-label="Đăng xuất">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </button>
+          </div>
           <button class="icon-btn" id="resetBtn" title="Đặt lại tiến độ" aria-label="Đặt lại">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -93,6 +104,19 @@
       <div class="dialog-actions">
         <button class="btn btn-ghost" id="resetCancel">Huỷ</button>
         <button class="btn btn-danger" id="resetConfirm">Xoá & Đặt lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login dialog -->
+  <div class="dialog-overlay" id="loginDialog" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true">
+      <h3>Đăng nhập</h3>
+      <p>Nhập tên của bạn để lưu tiến độ và sử dụng tính năng bình luận.</p>
+      <input type="text" id="loginNameInput" class="form-input" placeholder="Tên hiển thị..." autocomplete="off">
+      <div class="dialog-actions" style="margin-top: 20px;">
+        <button class="btn btn-ghost" id="loginCancel">Huỷ</button>
+        <button class="btn btn-primary" id="loginConfirm">Đăng nhập</button>
       </div>
     </div>
   </div>

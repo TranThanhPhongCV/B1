@@ -12,32 +12,42 @@
      STATE
      ============================================= */
   const STORAGE_KEY = 'b1quiz-state-v1';
+  const COMMENTS_KEY = 'b1quiz-comments-v1';
 
   function loadState() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } 
+    catch { return {}; }
   }
 
   function saveState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } 
+    catch {}
+  }
+
+  function loadComments() {
+    try { return JSON.parse(localStorage.getItem(COMMENTS_KEY)) || {}; }
+    catch { return {}; }
+  }
+
+  function saveComments() {
+    try { localStorage.setItem(COMMENTS_KEY, JSON.stringify(commentsData)); } 
+    catch {}
   }
 
   const savedState = loadState();
+  const commentsData = loadComments(); // { qid: [ { author, date, text } ] }
 
   const state = {
-    view: savedState.view || 'dashboard',     // 'dashboard' | 'section' | 'quiz'
+    currentUser: savedState.currentUser || null,
+    view: savedState.view || 'dashboard',
     testId: savedState.testId || null,
     sectionId: savedState.sectionId || null,
     partId: savedState.partId || null,
-    // answers: { questionId: answerIndex | 'A'|'B'|... }
-    answers: savedState.answers || {},
-    // revealed: { partKey: true } — whether this part's answers were revealed
+    answers: savedState.answers || {}, // { qid: 'A'|'B' } (always stores the original option label)
     revealed: savedState.revealed || {},
-    // scores: { partKey: { correct, total } }
-    scores: savedState.scores || {}
+    scores: savedState.scores || {},
+    shuffle: savedState.shuffle || false,
+    shuffledMaps: savedState.shuffledMaps || {} // { partKey: { questions: [qid], options: { qid: ['C','A','B'] } } }
   };
 
   function partKey(testId, sectionId, partId) {
@@ -45,7 +55,100 @@
   }
 
   /* =============================================
-     NAVIGATION
+     LOGIN LOGIC
+     ============================================= */
+  function updateLoginUI() {
+    const loginBtn = document.getElementById('loginBtn');
+    const profile = document.getElementById('userProfile');
+    const nameDisplay = document.getElementById('userNameDisplay');
+    
+    if (state.currentUser) {
+      if(loginBtn) loginBtn.style.display = 'none';
+      if(profile) profile.style.display = 'flex';
+      if(nameDisplay) nameDisplay.textContent = state.currentUser;
+    } else {
+      if(loginBtn) loginBtn.style.display = 'inline-flex';
+      if(profile) profile.style.display = 'none';
+    }
+  }
+
+  function handleLogin() {
+    const input = document.getElementById('loginNameInput');
+    const name = input.value.trim();
+    if (name) {
+      state.currentUser = name;
+      saveState();
+      updateLoginUI();
+      hideDialog('loginDialog');
+      render(); // re-render to update comment UI
+      showToast(`Xin chào, ${name}!`);
+    }
+  }
+
+  function handleLogout() {
+    state.currentUser = null;
+    saveState();
+    updateLoginUI();
+    render();
+    showToast('Đã đăng xuất.');
+  }
+
+  function showDialog(id) {
+    const d = document.getElementById(id);
+    const b = document.getElementById('backdrop');
+    if (d) { d.classList.add('show'); d.setAttribute('aria-hidden', 'false'); }
+    if (b) b.classList.add('show');
+  }
+
+  function hideDialog(id) {
+    const d = document.getElementById(id);
+    const b = document.getElementById('backdrop');
+    if (d) { d.classList.remove('show'); d.setAttribute('aria-hidden', 'true'); }
+    if (b && !document.getElementById('sidebar').classList.contains('open')) {
+      b.classList.remove('show');
+    }
+  }
+
+  /* =============================================
+     SHUFFLE LOGIC
+     ============================================= */
+  function getShuffledArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function generateShuffleMap(part, key) {
+    const map = { questions: [], options: {} };
+    // Shuffle questions
+    map.questions = getShuffledArray(part.questions).map(q => q.id);
+    // Shuffle options for abc, abcd
+    part.questions.forEach(q => {
+      if (part.type === 'abc' || part.type === 'abcd' || part.type === 'picture') {
+        const labels = part.type === 'picture' ? ['A', 'B', 'C'] : q.options.map((_, i) => ['A','B','C','D'][i]);
+        map.options[q.id] = getShuffledArray(labels);
+      } else {
+        // No shuffle for matching, truefalse, yesno
+        map.options[q.id] = null;
+      }
+    });
+    state.shuffledMaps[key] = map;
+    saveState();
+    return map;
+  }
+
+  function toggleShuffle() {
+    state.shuffle = !state.shuffle;
+    saveState();
+    renderQuiz();
+    showToast(state.shuffle ? 'Đã BẬT trộn câu hỏi' : 'Đã TẮT trộn câu hỏi');
+  }
+
+  /* =============================================
+     NAVIGATION & DATA HELPERS
      ============================================= */
   function navigate(view, params = {}) {
     state.view = view;
@@ -57,32 +160,22 @@
     content.scrollTo({ top: 0 });
     updateBreadcrumb();
     updateSidebarActive();
-    // Close sidebar on mobile
     if (window.innerWidth <= 768) closeSidebar();
   }
 
-  /* =============================================
-     DATA HELPERS
-     ============================================= */
-  function getTest(testId) {
-    return DATA.tests.find(t => t.id === testId);
-  }
-
+  function getTest(testId) { return DATA.tests.find(t => t.id === testId); }
   function getSection(testId, sectionId) {
     const test = getTest(testId);
     return test ? test.sections.find(s => s.id === sectionId) : null;
   }
-
   function getPart(testId, sectionId, partId) {
     const section = getSection(testId, sectionId);
     return section ? section.parts.find(p => p.id === partId) : null;
   }
-
   function getPartScore(testId, sectionId, partId) {
     const key = partKey(testId, sectionId, partId);
     return state.scores[key] || null;
   }
-
   function getTestProgress(testId) {
     const test = getTest(testId);
     if (!test) return { answered: 0, total: 0, correct: 0 };
@@ -100,7 +193,6 @@
     });
     return { answered, total, correct };
   }
-
   function getTotalProgress() {
     let answered = 0, total = 0, correct = 0;
     DATA.tests.forEach(test => {
@@ -112,19 +204,27 @@
     return { answered, total, correct };
   }
 
-  /* Compute correct answer label (A/B/C/D) or index */
   function getAnswerLabel(part, question) {
     if (part.type === 'abc' || part.type === 'abcd') {
       const keys = ['A', 'B', 'C', 'D'];
       return keys[question.answer];
     }
-    if (part.type === 'matching' || part.type === 'truefalse' || part.type === 'yesno') {
-      return question.answer; // already 'A'/'B'/...
-    }
-    if (part.type === 'picture') {
-      return question.answer; // 'A', 'B', or 'C'
+    if (part.type === 'matching' || part.type === 'truefalse' || part.type === 'yesno' || part.type === 'picture') {
+      return question.answer;
     }
     return String(question.answer);
+  }
+
+  function getPartTypeLabel(type) {
+    const map = {
+      'abc': 'Trắc nghiệm 3 lựa chọn (A/B/C)',
+      'abcd': 'Trắc nghiệm 4 lựa chọn (A/B/C/D)',
+      'matching': 'Ghép nối (Matching)',
+      'truefalse': 'Đúng/Sai (A=Correct, B=Incorrect)',
+      'yesno': 'Đồng ý/Không đồng ý (A=YES, B=NO)',
+      'picture': 'Câu hỏi hình ảnh (A/B/C)'
+    };
+    return map[type] || type;
   }
 
   /* =============================================
@@ -167,14 +267,6 @@
     }).join('');
 
     content.innerHTML = `
-      <svg class="svg-defs">
-        <defs>
-          <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#58a6ff"/>
-            <stop offset="100%" stop-color="#a371f7"/>
-          </linearGradient>
-        </defs>
-      </svg>
       <div class="dashboard fade-in">
         <div class="dashboard-hero">
           <div class="hero-badge">📚 Cambridge PET for Schools</div>
@@ -201,19 +293,14 @@
       </div>
     `;
 
-    // Events
     content.querySelectorAll('[data-nav-test]').forEach(el => {
-      el.addEventListener('click', () => showTestMenu(el.dataset.navTest));
-      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') showTestMenu(el.dataset.navTest); });
+      el.addEventListener('click', () => {
+        const t = getTest(el.dataset.navTest);
+        navigate('section', { testId: t.id, sectionId: t.sections[0].id });
+      });
     });
 
     updateScoreRing();
-  }
-
-  function showTestMenu(testId) {
-    const test = getTest(testId);
-    if (!test) return;
-    navigate('section', { testId, sectionId: test.sections[0].id });
   }
 
   /* =============================================
@@ -248,7 +335,6 @@
       `;
     }).join('');
 
-    // Section switcher tabs
     const tabsHtml = test.sections.map(s => `
       <button class="btn ${s.id === state.sectionId ? 'btn-primary' : 'btn-ghost'}" 
               data-section-tab="${s.id}">${s.icon} ${s.title}</button>
@@ -271,25 +357,11 @@
     `;
 
     content.querySelectorAll('[data-nav-part]').forEach(el => {
-      el.addEventListener('click', () => navigate('quiz', { testId: state.testId, sectionId: state.sectionId, partId: el.dataset.navPart }));
-      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') navigate('quiz', { testId: state.testId, sectionId: state.sectionId, partId: el.dataset.navPart }); });
+      el.addEventListener('click', () => navigate('quiz', { partId: el.dataset.navPart }));
     });
-
     content.querySelectorAll('[data-section-tab]').forEach(el => {
-      el.addEventListener('click', () => navigate('section', { testId: state.testId, sectionId: el.dataset.sectionTab }));
+      el.addEventListener('click', () => navigate('section', { sectionId: el.dataset.sectionTab }));
     });
-  }
-
-  function getPartTypeLabel(type) {
-    const map = {
-      'abc': 'Trắc nghiệm 3 lựa chọn (A/B/C)',
-      'abcd': 'Trắc nghiệm 4 lựa chọn (A/B/C/D)',
-      'matching': 'Ghép nối (Matching)',
-      'truefalse': 'Đúng/Sai (A=Correct, B=Incorrect)',
-      'yesno': 'Đồng ý/Không đồng ý (A=YES, B=NO)',
-      'picture': 'Câu hỏi hình ảnh (A/B/C)'
-    };
-    return map[type] || type;
   }
 
   /* =============================================
@@ -304,18 +376,19 @@
     const key = partKey(state.testId, state.sectionId, state.partId);
     const isRevealed = !!state.revealed[key];
 
+    // Shuffle processing
+    let map = null;
+    if (state.shuffle && !isRevealed) {
+      map = state.shuffledMaps[key] || generateShuffleMap(part, key);
+    }
+
+    let orderedQuestions = part.questions;
+    if (map) {
+      orderedQuestions = map.questions.map(qid => part.questions.find(q => q.id === qid)).filter(Boolean);
+    }
+
     // Instruction
     let instructionHtml = `<div class="quiz-instruction">${part.description}</div>`;
-
-    // Picture gallery for listening part 1
-    let pictureHtml = '';
-    if (part.type === 'picture' && part.images) {
-      pictureHtml = `
-        <div class="picture-gallery">
-          ${part.images.map(src => `<img src="${src}" alt="Hình câu hỏi Listening Part 1" loading="lazy">`).join('')}
-        </div>
-      `;
-    }
 
     // Matching options panel
     let matchingPanelHtml = '';
@@ -331,7 +404,7 @@
     }
 
     // Questions
-    const questionsHtml = part.questions.map((q, idx) => renderQuestion(part, q, idx, key, isRevealed)).join('');
+    const questionsHtml = orderedQuestions.map((q, idx) => renderQuestion(part, q, idx, key, isRevealed, map)).join('');
 
     // Submit / result area
     const sc = state.scores[key];
@@ -382,6 +455,13 @@
               <div class="quiz-title">${part.title} — ${getPartTypeLabel(part.type)}</div>
             </div>
             <div class="quiz-actions">
+              <label class="toggle-switch-wrapper">
+                <span class="toggle-switch-label">Trộn câu hỏi</span>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="shuffleToggle" ${state.shuffle ? 'checked' : ''} ${isRevealed ? 'disabled' : ''}>
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
               <button class="btn btn-ghost" id="backToSectionBtn">← Quay lại</button>
             </div>
           </div>
@@ -394,7 +474,6 @@
         </div>
 
         ${instructionHtml}
-        ${pictureHtml}
         ${matchingPanelHtml}
 
         <div class="questions-list" id="questionsList">
@@ -411,6 +490,9 @@
     // Events
     document.getElementById('backToSectionBtn').addEventListener('click', () => navigate('section', {}));
     document.getElementById('submitBtn').addEventListener('click', () => submitQuiz(part, key));
+    
+    const shuffleTgl = document.getElementById('shuffleToggle');
+    if (shuffleTgl) shuffleTgl.addEventListener('change', toggleShuffle);
 
     if (isRevealed) {
       const retryBtn = document.getElementById('retryBtn');
@@ -420,17 +502,18 @@
     }
 
     attachOptionListeners(part, key);
+    attachCommentListeners();
     updateQuizProgress(part, key);
   }
 
-  function renderQuestion(part, q, idx, key, isRevealed) {
-    const userAnswer = state.answers[q.id];
+  function renderQuestion(part, q, idx, key, isRevealed, map) {
+    const userAnswer = state.answers[q.id]; // This is the original correct label (e.g. 'A')
     const correctLabel = getAnswerLabel(part, q);
     const hasAnswer = userAnswer !== undefined && userAnswer !== null;
 
     let statusClass = '';
     if (isRevealed && hasAnswer) {
-      const isCorrect = checkAnswer(part, q, userAnswer);
+      const isCorrect = String(userAnswer) === String(correctLabel);
       statusClass = isCorrect ? 'revealed all-correct' : 'revealed has-wrong';
     } else if (hasAnswer) {
       statusClass = 'answered';
@@ -438,19 +521,35 @@
 
     let numClass = '';
     if (isRevealed && hasAnswer) {
-      numClass = checkAnswer(part, q, userAnswer) ? 'correct' : 'wrong';
+      numClass = (String(userAnswer) === String(correctLabel)) ? 'correct' : 'wrong';
     }
 
-    // Build options HTML based on type
+    let imageHtml = '';
+    if (q.image) {
+      imageHtml = `<div class="question-image"><img src="${q.image}" alt="Question Image" loading="lazy"></div>`;
+    }
+
+    // Build options HTML
     let optionsHtml = '';
+    const keys = ['A', 'B', 'C', 'D'];
 
     if (part.type === 'abc' || part.type === 'abcd' || part.type === 'picture') {
-      const opts = part.type === 'picture' ? ['A', 'B', 'C'] : q.options;
-      const keys = ['A', 'B', 'C', 'D'];
-      optionsHtml = `<div class="options-list">` + opts.map((opt, i) => {
-        const label = keys[i];
-        const isSelected = userAnswer === label;
-        const isCorrectOpt = label === correctLabel;
+      let qOpts = part.type === 'picture' ? ['A', 'B', 'C'] : q.options;
+      let optOrder = keys.slice(0, qOpts.length);
+      
+      // Apply shuffle map if exists
+      if (map && map.options[q.id]) {
+        optOrder = map.options[q.id];
+      }
+
+      optionsHtml = `<div class="options-list">` + optOrder.map((origLabel, i) => {
+        const visualLabel = keys[i]; // A, B, C...
+        const origIdx = keys.indexOf(origLabel);
+        const text = part.type === 'picture' ? `Hình ${origLabel}` : qOpts[origIdx];
+        
+        const isSelected = userAnswer === origLabel;
+        const isCorrectOpt = origLabel === correctLabel;
+        
         let cls = 'option-btn';
         if (isRevealed) {
           if (isCorrectOpt) cls += ' correct-ans';
@@ -458,14 +557,13 @@
         } else if (isSelected) {
           cls += ' selected';
         }
-        const text = part.type === 'picture' ? `Hình ${label}` : opt;
-        return `<button class="${cls}" data-qid="${q.id}" data-val="${label}" ${isRevealed ? 'disabled' : ''}>
-          <span class="option-key">${label}</span>
+
+        return `<button class="${cls}" data-qid="${q.id}" data-orig-val="${origLabel}" ${isRevealed ? 'disabled' : ''}>
+          <span class="option-key">${visualLabel}</span>
           <span>${text}</span>
         </button>`;
       }).join('') + `</div>`;
     } else if (part.type === 'matching') {
-      // Dropdown-style: show all option buttons A-H
       const opts = part.options || [];
       optionsHtml = `<div class="options-list">` + opts.map(opt => {
         const isSelected = userAnswer === opt.id;
@@ -474,16 +572,18 @@
         if (isRevealed) {
           if (isCorrectOpt) cls += ' correct-ans';
           else if (isSelected && !isCorrectOpt) cls += ' wrong-ans';
-        } else if (isSelected) {
-          cls += ' selected';
-        }
-        return `<button class="${cls}" data-qid="${q.id}" data-val="${opt.id}" ${isRevealed ? 'disabled' : ''}>
+        } else if (isSelected) cls += ' selected';
+        
+        return `<button class="${cls}" data-qid="${q.id}" data-orig-val="${opt.id}" ${isRevealed ? 'disabled' : ''}>
           <span class="option-key">${opt.id}</span>
           <span>${opt.label.replace(/^[A-H]\.\s*/, '')}</span>
         </button>`;
       }).join('') + `</div>`;
-    } else if (part.type === 'truefalse') {
-      const opts = [{ id: 'A', label: 'A. Correct ✓' }, { id: 'B', label: 'B. Incorrect ✗' }];
+    } else if (part.type === 'truefalse' || part.type === 'yesno') {
+      const opts = part.type === 'truefalse' 
+        ? [{ id: 'A', label: 'A. Correct ✓' }, { id: 'B', label: 'B. Incorrect ✗' }]
+        : [{ id: 'A', label: 'A. YES ✓' }, { id: 'B', label: 'B. NO ✗' }];
+      
       optionsHtml = `<div class="tf-options">` + opts.map(opt => {
         const isSelected = userAnswer === opt.id;
         const isCorrectOpt = opt.id === correctLabel;
@@ -491,31 +591,16 @@
         if (isRevealed) {
           if (isCorrectOpt) cls += ' correct-ans';
           else if (isSelected && !isCorrectOpt) cls += ' wrong-ans';
-        } else if (isSelected) {
-          cls += ' selected';
-        }
-        return `<button class="${cls}" data-qid="${q.id}" data-val="${opt.id}" ${isRevealed ? 'disabled' : ''}>${opt.label}</button>`;
-      }).join('') + `</div>`;
-    } else if (part.type === 'yesno') {
-      const opts = [{ id: 'A', label: 'A. YES ✓' }, { id: 'B', label: 'B. NO ✗' }];
-      optionsHtml = `<div class="tf-options">` + opts.map(opt => {
-        const isSelected = userAnswer === opt.id;
-        const isCorrectOpt = opt.id === correctLabel;
-        let cls = 'tf-btn';
-        if (isRevealed) {
-          if (isCorrectOpt) cls += ' correct-ans';
-          else if (isSelected && !isCorrectOpt) cls += ' wrong-ans';
-        } else if (isSelected) {
-          cls += ' selected';
-        }
-        return `<button class="${cls}" data-qid="${q.id}" data-val="${opt.id}" ${isRevealed ? 'disabled' : ''}>${opt.label}</button>`;
+        } else if (isSelected) cls += ' selected';
+        
+        return `<button class="${cls}" data-qid="${q.id}" data-orig-val="${opt.id}" ${isRevealed ? 'disabled' : ''}>${opt.label}</button>`;
       }).join('') + `</div>`;
     }
 
     // Feedback row
     let feedbackHtml = '';
     if (isRevealed && hasAnswer) {
-      const isCorrect = checkAnswer(part, q, userAnswer);
+      const isCorrect = String(userAnswer) === String(correctLabel);
       if (isCorrect) {
         feedbackHtml = `<div class="question-feedback show"><span class="feedback-correct">✓ Đúng rồi!</span></div>`;
       } else {
@@ -523,15 +608,47 @@
       }
     }
 
-    const qNumDisplay = idx + 1;
+    // Comments section
+    const qComments = commentsData[q.id] || [];
+    const commentCount = qComments.length;
+    let commentHtml = `
+      <div class="question-comments-section" id="comments-${q.id}" style="display:none;">
+        <div class="comments-list">
+          ${qComments.map(c => `
+            <div class="comment-item">
+              <div class="comment-avatar">${c.author.charAt(0).toUpperCase()}</div>
+              <div class="comment-body">
+                <div class="comment-header">
+                  <span class="comment-author">${c.author}</span>
+                  <span class="comment-date">${c.date}</span>
+                </div>
+                <div class="comment-text">${c.text}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${state.currentUser ? `
+          <div class="comment-input-area">
+            <textarea id="comment-input-${q.id}" placeholder="Viết nhận xét..."></textarea>
+            <button class="btn comment-submit-btn" data-comment-submit="${q.id}">Gửi</button>
+          </div>
+        ` : `<div style="font-size:12px;color:var(--text-muted);">Vui lòng <a href="#" style="color:var(--accent);" onclick="document.getElementById('loginBtn').click();return false;">đăng nhập</a> để bình luận.</div>`}
+      </div>
+    `;
+
     return `
       <div class="question-card ${statusClass}" id="qcard-${q.id}">
         <div class="question-head">
-          <div class="question-num ${numClass}">${qNumDisplay}</div>
+          <div class="question-num ${numClass}">${idx + 1}</div>
           <div class="question-text">${q.stem}</div>
         </div>
+        ${imageHtml}
         ${optionsHtml}
         ${feedbackHtml}
+        <button class="toggle-comments-btn" data-toggle-comment="${q.id}">
+          💬 Nhận xét ${commentCount > 0 ? `(${commentCount})` : ''}
+        </button>
+        ${commentHtml}
       </div>
     `;
   }
@@ -539,27 +656,63 @@
   function attachOptionListeners(part, key) {
     if (state.revealed[key]) return;
 
-    content.querySelectorAll('[data-qid]').forEach(btn => {
+    content.querySelectorAll('[data-orig-val]').forEach(btn => {
       btn.addEventListener('click', () => {
         const qid = btn.dataset.qid;
-        const val = btn.dataset.val;
+        const val = btn.dataset.origVal;
         state.answers[qid] = val;
         saveState();
-        // Update button states
+        
         content.querySelectorAll(`[data-qid="${qid}"]`).forEach(b => {
-          b.classList.toggle('selected', b.dataset.val === val);
-          const keyEl = b.querySelector('.option-key');
-          if (keyEl) {
-            // handled by class
-          }
+          b.classList.toggle('selected', b.dataset.origVal === val);
         });
-        // update card class
+        
         const card = document.getElementById(`qcard-${qid}`);
         if (card) card.classList.add('answered');
 
         updateQuizProgress(part, key);
         btn.classList.add('pulse');
         setTimeout(() => btn.classList.remove('pulse'), 400);
+      });
+    });
+  }
+
+  function attachCommentListeners() {
+    content.querySelectorAll('[data-toggle-comment]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qid = btn.dataset.toggleComment;
+        const section = document.getElementById(`comments-${qid}`);
+        if (section.style.display === 'none') {
+          section.style.display = 'block';
+          btn.style.background = 'var(--bg-4)';
+        } else {
+          section.style.display = 'none';
+          btn.style.background = 'var(--bg-3)';
+        }
+      });
+    });
+
+    content.querySelectorAll('[data-comment-submit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qid = btn.dataset.commentSubmit;
+        const input = document.getElementById(`comment-input-${qid}`);
+        const text = input.value.trim();
+        if (text && state.currentUser) {
+          if (!commentsData[qid]) commentsData[qid] = [];
+          commentsData[qid].push({
+            author: state.currentUser,
+            date: new Date().toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+            text: text
+          });
+          saveComments();
+          // Re-render part to show new comment
+          renderQuiz();
+          // Keep comment open
+          setTimeout(() => {
+            const section = document.getElementById(`comments-${qid}`);
+            if (section) section.style.display = 'block';
+          }, 50);
+        }
       });
     });
   }
@@ -574,40 +727,28 @@
     if (text) text.textContent = `${answered} / ${total}`;
   }
 
-  function checkAnswer(part, q, userAnswer) {
-    if (userAnswer === undefined || userAnswer === null) return false;
-    const correctLabel = getAnswerLabel(part, q);
-    return String(userAnswer) === String(correctLabel);
-  }
-
   function submitQuiz(part, key) {
-    // Check if all answered
     const unanswered = part.questions.filter(q => state.answers[q.id] === undefined);
     if (unanswered.length > 0) {
       showToast(`Còn ${unanswered.length} câu chưa trả lời. Hãy trả lời hết trước khi kiểm tra.`, 'info');
-      // Scroll to first unanswered
-      const firstQ = unanswered[0];
-      const el = document.getElementById(`qcard-${firstQ.id}`);
+      const el = document.getElementById(`qcard-${unanswered[0].id}`);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    // Calculate score
     let correct = 0;
     part.questions.forEach(q => {
-      if (checkAnswer(part, q, state.answers[q.id])) correct++;
+      if (String(state.answers[q.id]) === String(getAnswerLabel(part, q))) correct++;
     });
 
     state.scores[key] = { correct, total: part.questions.length };
     state.revealed[key] = true;
     saveState();
 
-    // Re-render quiz with revealed answers
     renderQuiz();
     updateScoreRing();
     updateSidebarActive();
 
-    // Scroll to result
     setTimeout(() => {
       const resultEl = document.querySelector('.quiz-result-panel');
       if (resultEl) resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -617,10 +758,10 @@
   function retryPart(key) {
     const part = getPart(state.testId, state.sectionId, state.partId);
     if (!part) return;
-    // Clear answers for this part
     part.questions.forEach(q => { delete state.answers[q.id]; });
     delete state.revealed[key];
     delete state.scores[key];
+    delete state.shuffledMaps[key]; // clear shuffle so it regenerates if shuffle is ON
     saveState();
     renderQuiz();
     updateScoreRing();
@@ -633,7 +774,6 @@
     if (idx < section.parts.length - 1) {
       navigate('quiz', { partId: section.parts[idx + 1].id });
     } else {
-      // Try next section
       const test = getTest(state.testId);
       const secIdx = test.sections.findIndex(s => s.id === state.sectionId);
       if (secIdx < test.sections.length - 1) {
@@ -697,21 +837,18 @@
       `;
     }).join('');
 
-    // Events
     nav.querySelectorAll('[data-nav-toggle]').forEach(el => {
       el.addEventListener('click', () => {
         const group = document.getElementById(`navgroup-${el.dataset.navToggle}`);
         if (group) group.classList.toggle('open');
       });
     });
-
     nav.querySelectorAll('[data-nav-section]').forEach(el => {
       el.addEventListener('click', () => {
         const test = getTest(el.dataset.navSection);
         navigate('section', { testId: el.dataset.navSection, sectionId: test?.sections[0]?.id });
       });
     });
-
     nav.querySelectorAll('[data-nav-quiz]').forEach(el => {
       el.addEventListener('click', () => {
         navigate('quiz', { testId: el.dataset.navQuiz, sectionId: el.dataset.navSec, partId: el.dataset.navPart });
@@ -720,7 +857,7 @@
   }
 
   function updateSidebarActive() {
-    buildSidebar(); // Rebuild to reflect active states
+    buildSidebar();
     updateScoreRing();
   }
 
@@ -741,9 +878,8 @@
     if (detail) detail.textContent = `${total.correct} / ${total.total} câu đúng`;
   }
 
-
   /* =============================================
-     BREADCRUMB
+     BREADCRUMB & MOBILE
      ============================================= */
   function updateBreadcrumb() {
     const el = document.getElementById('topbarBreadcrumb');
@@ -772,14 +908,10 @@
         <span class="crumb-current">${part?.title}</span>
       `;
     }
-
     el.querySelectorAll('[data-nav-dash]').forEach(b => b.addEventListener('click', () => navigate('dashboard')));
     el.querySelectorAll('[data-nav-section]').forEach(b => b.addEventListener('click', () => navigate('section', {})));
   }
 
-  /* =============================================
-     MOBILE SIDEBAR
-     ============================================= */
   function openSidebar() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('backdrop').classList.add('show');
@@ -787,12 +919,12 @@
 
   function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('backdrop').classList.remove('show');
+    if (!document.getElementById('resetDialog')?.classList.contains('show') &&
+        !document.getElementById('loginDialog')?.classList.contains('show')) {
+      document.getElementById('backdrop').classList.remove('show');
+    }
   }
 
-  /* =============================================
-     TOAST
-     ============================================= */
   function showToast(msg, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -807,38 +939,17 @@
     }, 3000);
   }
 
-  /* =============================================
-     RESET
-     ============================================= */
-  function showResetDialog() {
-    const dialog = document.getElementById('resetDialog');
-    const backdrop = document.getElementById('backdrop');
-    if (dialog) { dialog.classList.add('show'); dialog.setAttribute('aria-hidden', 'false'); }
-    if (backdrop) backdrop.classList.add('show');
-  }
-
-  function hideResetDialog() {
-    const dialog = document.getElementById('resetDialog');
-    const backdrop = document.getElementById('backdrop');
-    if (dialog) { dialog.classList.remove('show'); dialog.setAttribute('aria-hidden', 'true'); }
-    if (backdrop) backdrop.classList.remove('show');
-    if (document.getElementById('sidebar')?.classList.contains('open') && window.innerWidth <= 768) {
-      // keep backdrop if sidebar is open
-    } else {
-      if (backdrop) backdrop.classList.remove('show');
-    }
-  }
-
   function resetAll() {
     state.answers = {};
     state.revealed = {};
     state.scores = {};
+    state.shuffledMaps = {};
     state.view = 'dashboard';
     state.testId = null;
     state.sectionId = null;
     state.partId = null;
     saveState();
-    hideResetDialog();
+    hideDialog('resetDialog');
     render();
     buildSidebar();
     updateBreadcrumb();
@@ -850,36 +961,44 @@
      ============================================= */
   function init() {
     buildSidebar();
+    updateLoginUI();
     render();
     updateBreadcrumb();
     updateScoreRing();
 
     // Menu button
     document.getElementById('menuBtn')?.addEventListener('click', openSidebar);
+    document.getElementById('sidebarClose')?.addEventListener('click', closeSidebar);
+    document.querySelector('.brand')?.addEventListener('click', () => navigate('dashboard'));
 
     // Backdrop click
     document.getElementById('backdrop')?.addEventListener('click', () => {
       closeSidebar();
-      hideResetDialog();
+      hideDialog('resetDialog');
+      hideDialog('loginDialog');
     });
-
-    // Sidebar close
-    document.getElementById('sidebarClose')?.addEventListener('click', closeSidebar);
-
-    // Reset button
-    document.getElementById('resetBtn')?.addEventListener('click', showResetDialog);
-    document.getElementById('resetCancel')?.addEventListener('click', hideResetDialog);
-    document.getElementById('resetConfirm')?.addEventListener('click', resetAll);
-
-    // Brand logo click → dashboard
-    document.querySelector('.brand')?.addEventListener('click', () => navigate('dashboard'));
-
-    // Keyboard shortcut Escape = close sidebar
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         closeSidebar();
-        hideResetDialog();
+        hideDialog('resetDialog');
+        hideDialog('loginDialog');
       }
+    });
+
+    // Reset Dialog
+    document.getElementById('resetBtn')?.addEventListener('click', () => showDialog('resetDialog'));
+    document.getElementById('resetCancel')?.addEventListener('click', () => hideDialog('resetDialog'));
+    document.getElementById('resetConfirm')?.addEventListener('click', resetAll);
+
+    // Login Dialog
+    document.getElementById('loginBtn')?.addEventListener('click', () => showDialog('loginDialog'));
+    document.getElementById('loginCancel')?.addEventListener('click', () => hideDialog('loginDialog'));
+    document.getElementById('loginConfirm')?.addEventListener('click', handleLogin);
+    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+    
+    // Login on Enter key
+    document.getElementById('loginNameInput')?.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') handleLogin();
     });
   }
 
